@@ -27,7 +27,8 @@ __all__ = [
 ]
 
 # Initialize constants and values
-DATASETS_PATH = os.path.join(os.path.dirname(Path(__file__).absolute()), 'data')
+DATASETS_PATH = os.path.join(os.path.dirname(Path(__file__).absolute()), 
+                             'data')
 DATASETNAME_2_MODULE = {
     'mnist': mnist,
 #    'glas': glas,
@@ -67,7 +68,7 @@ def get_list(disp=True):
 def get_dataset(dataset_name, path='', name=''):
     assert dataset_name in DATASETNAME_2_MODULE
     if not path:
-        path = DATASETS_PATH + dataset_name
+        path = os.path.join(DATASETS_PATH, dataset_name)
     return DATASETNAME_2_MODULE[dataset_name].DatasetHandler(path, name=name)
 
 
@@ -92,14 +93,14 @@ def _get_available_dataset_names(path=None):
 """ Deprecated.
 
 def get_info(dataset_name, disp=True):
-    r""" 
-    # Returns and optionally prints a list of datasets available and its information.
+    ''' 
+    Returns and optionally prints a list of datasets available and its information.
 
-    # Parameters:
-    # dataset_name - name of dataset
-    # print - boolean value, if True prints to console
-    # detailed - in addition to counts/labels, displays img sizes, file types
-    """
+    Parameters:
+    dataset_name - name of dataset
+    print - boolean value, if True prints to console
+    detailed - in addition to counts/labels, displays img sizes, file types
+    '''
 
     '''
     Basic:
@@ -116,18 +117,18 @@ def get_info(dataset_name, disp=True):
     return ret_dict
 
 def get_dataframe(dataset_name):
-    f"""
+    f'''
     # When called, returns a new dataframe object for the dataset given.
-    """
+    '''
     assert dataset_name.lower() in DATASETNAME_2_MODULE.keys()
     return DATASETNAME_2_MODULE[dataset_name].get_dataframe(DATASETS_PATH)
 
 
 def get_dataset_handler(dataset_name, df=None):
-    f"""
+    f'''
     # When called, returns a new handler object for the dataset given.
     # With the handler comes with its static info methods as well as new df.
-    """
+    '''
     assert dataset_name.lower() in DATASETNAME_2_MODULE.keys()
     if df is not None:
         return DATASETNAME_2_MODULE[dataset_name].get_dataset_handler(

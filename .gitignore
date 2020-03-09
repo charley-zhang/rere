@@ -1,4 +1,19 @@
-data/
-__pycache__/
 
+# Python
+__pycache__/
 *.pyc
+*.pyd
+*.pyi
+
+# PyTorch
+*.pth
+
+# IPython notebook checkpoints
+.ipynb_checkpoints
+
+# Visual Studio Code files
+.vscode
+.vs
+
+# OSX dir files
+.DS_Store
