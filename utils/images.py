@@ -40,6 +40,7 @@ import shutil
 from pathlib import Path
 from collections import Counter
 import math
+from tqdm import tqdm
 
 import cv2
 import numpy as np
@@ -104,7 +105,7 @@ def get_info(imgobjs, verbose=True):
     N = len(formatted_imgobjs)
     assert N > 0
 
-    print(f"\nPrinting information for {N} images..\n")
+    print(f"\nCollecting information from {N} images..\n", flush=True)
     if verbose and N > 1:
         print(f"- - - - - - -\nInstance Info\n- - - - - - -")
 
@@ -123,7 +124,9 @@ def get_info(imgobjs, verbose=True):
     sum_gray_means, sum_gray_stds = 0., 0.
     
     rgb_initialized, gray_initialized = False, False
-    for i, img in enumerate(formatted_imgobjs):
+
+    iterable = formatted_imgobjs if verbose else tqdm(formatted_imgobjs)
+    for i, img in enumerate(iterable):
         minval, maxval = [], []
         mean, std = [], []
         dim, ext = None, None
@@ -188,7 +191,7 @@ def get_info(imgobjs, verbose=True):
         
         # print individual instance info
         if verbose and N > 1:
-            print(f"> Image #{i+1}. Size: {dim}.")
+            print(f"> Image #{i+1}/{N}. Size: {dim}.")
             if isinstance(img, str):
                 print(f"\tFile: {files.get_filename(img)}")
             print(f"\tMeans:  {mean} \n\tStds:   {std}\n"

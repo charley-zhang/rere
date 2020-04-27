@@ -114,7 +114,7 @@ class VisionDatasetHandler:
                         # imgobj = Image.open(row['path'])
                         # imgchannels = len(imgobj.getbands())
                         # imgw, imh = imgobj.size
-                        imgw, imh = get_image_size(row['path'])
+                        imgw, imh = images.get_dimensions(row['path'])
                         
                         # print(f"OG time to get imgsize: {time.time()-ST}")
                         # sys.exit()
@@ -161,6 +161,86 @@ class VisionDatasetHandler:
             return info_dict
 
 
+class MultiClassHandler(VisionDatasetHandler):
+    
+    def get_classidx(self, descriptor):
+        r"""
+        Converts classid or classname (defined in OG dataset) to classidx.
+        Makes use of instance's self.classnames & self.classmap
+        """
+        if isinstance(descriptor, str):
+            return self.classnames.index(descriptor)
+        elif isinstance(descriptor, int):
+            return self.classmap.index(descriptor)
+        else:
+            raise ValueError(f"descriptor ({descriptor}) type not valid.")
+
+    def get_classid(self, descriptor):
+        r"""
+        Converts classidx or classname to classid (defined in OG ds).
+        Makes use of instance's self.classnames & self.classmap
+        """
+        if isinstance(descriptor, str):
+            classidx = self.classnames.index(descriptor)
+            return self.classmap[classidx]
+        elif isinstance(descriptor, int):
+            return self.classmap[descriptor]
+        else:
+            raise ValueError(f"descriptor ({descriptor}) type not valid.")
+
+    def get_classname(self, value, is_cidx=True):
+        r"""
+        Converts classidx or classid to classname.
+        Makes use of instance's self.classnames & self.classmap
+        """
+        assert isinstance(value, int) and value >= 0
+        assert value <= len(self.classmap) or value <= max(self.classmap)
+        if is_cidx:
+            return self.classnames[value]
+        else: # is classid
+            classidx = self.classmap.index[value]
+            return self.classnames[classidx]
+        
+    
+    ### Helper Methods ###
+    @staticmethod
+    def _get_classnames_classmap(descriptor):
+        r"""
+        Gets list of classnames with the name mapped to its class idx.
+            > descriptor: df or subsetdir (train, test, val in correct format)
+        """
+        classnames, classmap = [], []
+        if isinstance(descriptor, str):
+            subsetpath = descriptor
+            assert os.path.isdir(subsetpath)
+            dirnames = natural_sort([d for d in os.listdir(subsetpath)
+                        if os.path.isdir(os.path.join(subsetpath, d))])
+            for cidx, dn in enumerate(dirnames):
+                parts = dn.split('_')
+                assert len(parts) == 2 and parts[0].isdigit() and cidx == int(parts[0])
+                assert os.listdir(os.path.join(subsetpath, dn)) # dir populated
+                classnames.append(parts[1])
+                classmap.append(int(parts[0]))
+            return classnames, classmap
+        elif isinstance(descriptor, pd.DataFrame):
+            df = descriptor
+            cid_2_cname = {}
+            for idx, row in df.iterrows():
+                ci, cn = row['label']
+                if ci in cid_2_cname:
+                    assert cn == cid_2_cname[ci]
+                else:
+                    cid_2_cname[ci] = cn
+            sortedkeys = sorted(cid_2_cname.keys())
+            for k in sortedkeys:
+                classnames.append(cid_2_cname[k])
+                classmap.append(k)
+            print(f"classnames: {classnames}")
+            print(f"classmap: {classmap}")
+            
+            return classnames, classmap
+        else:
+            raise ValueError(f'descriptor ({descriptor}) type is incorrect.')
 
 
 

@@ -15,95 +15,36 @@ import torch
 from torch.utils.data import DataLoader, Dataset, Sampler
 
 from rere.utils import images, files
-from .basehandlers import VisionDatasetHandler
+from .basehandlers import VisionDatasetHandler, MultiClassHandler
 
 
-class DatasetHandler(VisionDatasetHandler):
+class DatasetHandler(MultiClassHandler):
     r"""
     Dataset handler for mnist (aka just a df wrapper with extra info)
     """
 
     def __init__(self, descriptor, name=''):
         ### Descriptor can either be path to mnist or a df
-        self.name = 'mnist' if not name else name
-        self.classnames, self.classmap = None, None
+        self.name = files.get_filename(__file__) if not name else name
         if isinstance(descriptor, str):
             if os.path.isdir(descriptor):
-                self.df = self._get_dataframe(descriptor)
+                self.df = self._get_dataframe_from_dir(descriptor)
             elif os.path.isfile(descriptor):
                 with open(descriptor, 'rb') as f:
                     self.df = pickle.load(f)
+                assert isinstance(self.df, pd.DataFrame)
+            else:
+                raise TypeError(f"Given path/dir ({descriptor}) must either \
+                                  be a df file or a dataset path.")
         elif isinstance(descriptor, pd.DataFrame):
             self.df = descriptor
         else:
             raise TypeError(f"descriptor of type({type(descriptor)}) isn't supported")
-        if not self.classnames:
-            self.update()
-        with open('./df.pkl', 'wb') as f:
-            pickle.dump(self.df, f)
+        # classnames = cidx2cn, classids = cidx2cid (cidx is used during prediction)
+        self.classnames, self.classids = self._get_classnames_classmap(self.df)
 
 
-    def update(self, newdf=None):
-        ''' Update self.classnames and optionally self.norm_means/stds'''
-        if newdf:
-            assert isinstance(newdf, pd.DataFrame)
-            self.df = newdf
-
-        self.classnames, self.classmap = [], []
-        cid_2_cname = {}
-        for idx, row in self.df.iterrows():
-            ci, cn = row['label']
-            if ci in cid_2_cname:
-                assert cn == cid_2_cname[ci]
-            else:
-                cid_2_cname[ci] = cn
-        sortedkeys = sorted(cid_2_cname.keys())
-        for k in sortedkeys:
-            self.classnames.append(cid_2_cname[k])
-            self.classmap.append(k)
-
-
-    def get_classidx(self, descriptor):
-        r"""
-        Converts classid or classname (defined in OG dataset) to classidx.
-        Makes use of instance's self.classnames & self.classmap
-        """
-        if isinstance(descriptor, str):
-            return self.classnames.index(descriptor)
-        elif isinstance(descriptor, int):
-            return self.classmap.index(descriptor)
-        else:
-            raise ValueError(f"descriptor ({descriptor}) type not valid.")
-
-        def get_classid(self, descriptor):
-            r"""
-            Converts classidx or classname to classid (defined in OG ds).
-            Makes use of instance's self.classnames & self.classmap
-            """
-            if isinstance(descriptor, str):
-                classidx = self.classnames.index(descriptor)
-                return self.classmap[classidx]
-            elif isinstance(descriptor, int):
-                return self.classmap[descriptor]
-            else:
-                raise ValueError(f"descriptor ({descriptor}) type not valid.")
-
-
-    def get_classname(self, value, is_cidx=True):
-        r"""
-        Converts classidx or classid to classname.
-        Makes use of instance's self.classnames & self.classmap
-        """
-        assert isinstance(value, int) and value >= 0
-        assert value <= len(self.classmap) or value <= max(self.classmap)
-        if is_cidx:
-            return self.classnames[value]
-        else: # is classid
-            classidx = self.classmap.index[value]
-            return self.classnames[classidx]
-
-
-    def _get_dataframe(self, ds_dir):
+    def _get_dataframe_from_dir(self, ds_dir):
         r"""
         Generates a dataframe based on the dataset lists directory.
         (1) Checks if 'dslistpath/mnist' directory exists
@@ -112,6 +53,7 @@ class DatasetHandler(VisionDatasetHandler):
         This function is called both by the module API to create a vanilla
         MNIST df and by the handler constructor when a df isn't given.
         """
+        # from rere.utils import files
         from rere.utils import files
         assert os.path.isdir(ds_dir)
         subset_dirs = files.list_dirs(ds_dir, subnames=['subset'], fullpath=True)
@@ -128,30 +70,29 @@ class DatasetHandler(VisionDatasetHandler):
         
         ## Populate df dict
         #  Loop over subset names (e.g. train)
-        self.classnames, self.classmap = [], []
         for subset_id, subset_dirname in enumerate(subset_dirs): 
             parts = subset_dirname.split('_')
             assert len(parts) == 2
             subset_name = parts[1].lower()
             subset_path = os.path.join(ds_dir, subset_dirname)
 
-            class_dirnames = files.natural_sort([d for d in os.listdir(subset_path) if os.path.isdir(os.path.join(subset_path, d)) \
+            class_dirnames = files.natural_sort([d for d in os.listdir(subset_path)
+                                if os.path.isdir(os.path.join(subset_path, d))
                                 and d[0] != '.'])
             # loop over classes in subset
             for classid_order, class_dirname in enumerate(class_dirnames):
+                print(subset_id, class_dirname)
                 parts = class_dirname.split('_')
                 assert len(parts) == 2 and isinstance(int(parts[0]), int)
                 classid = int(parts[0])
                 classname = parts[1]
-                self.classnames.append(classname)
-                self.classmap.append(classid)
 
                 # no file sort needed because id already defined in fn
-                filepaths = [f for f in os.listdir(os.path.join(
+                filelist = [f for f in os.listdir(os.path.join(
                     subset_path, class_dirname)) if os.path.isfile(
                         os.path.join(subset_path, class_dirname, f)) and \
                         os.path.splitext(f)[-1] == '.png']
-                for filename in filepaths: # loop over files in class
+                for filename in filelist: # loop over files in class
                     fnparts = filename.split('_')
                     imgid = int(fnparts[0])
                     imgname = fnparts[1][:-4]
@@ -167,12 +108,16 @@ class DatasetHandler(VisionDatasetHandler):
                     df_dict['label'].append((classid, classname))
                     df_dict['tags'].append(None)
                     df_dict['values'].append(None)
-
+               
         df = pd.DataFrame(df_dict).set_index('id').sort_index()
+        
         return df
 
+
         
-    
+        
+
+
 
 
 # class _MnistDefaultDataset(Dataset):
