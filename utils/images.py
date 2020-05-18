@@ -310,7 +310,7 @@ def to_np(imgobj, size=None, color=None, extra_channel=False):
     elif 'PIL.' in str(type(imgobj)):  
         img = np.uint8(np.array(imgobj))
     elif isinstance(imgobj, torch.Tensor):
-        if imgobj.ndim == 3:
+        if len(imgobj.shape) == 3:
             imgobj = imgobj.permute(1,2,0)
         img = np.uint8(imgobj.cpu().numpy()*255)
     else:
