@@ -310,9 +310,13 @@ def to_np(imgobj, size=None, color=None, extra_channel=False):
     elif 'PIL.' in str(type(imgobj)):  
         img = np.uint8(np.array(imgobj))
     elif isinstance(imgobj, torch.Tensor):
+        if torch.min(imgobj) >= 0 and torch.max(imgobj) <= 1:
+            imgobj *= 255.
+        elif torch.min(imgobj) < 0 or torch.max(imgobj) > 255.:
+            print(f"WARNING: {imgobj.shape} tensor has min ({torch.min(imgobj)}) and max ({torch.max(imgobj)})")
         if imgobj.ndim == 3:
             imgobj = imgobj.permute(1,2,0)
-        img = np.uint8(imgobj.cpu().numpy()*255)
+        img = np.uint8(imgobj.cpu().numpy())
     else:
         raise TypeError(f"Image obj of type ({type(imgobj)}) is not valid.")
     
