@@ -53,7 +53,7 @@ import pandas as pd
 from rere.utils import files
 
 ### Constants ###
-IMAGE_EXTS = ['.bmp', '.png', '.jpg', '.jpeg', '.tiff', '.gif']
+IMAGE_EXTS = ['.bmp', '.png', '.jpg', '.jpeg', '.tiff', '.gif', 'ppm']
 CONTAINER_TYPES = ['np', 'pil', 'tensor']
 COLOR_MODES = ['auto', 'rgb', 'gray', 'binary']
 COLOR_2_PILMODE = {

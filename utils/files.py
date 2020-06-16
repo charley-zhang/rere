@@ -3,7 +3,7 @@ import sys, os
 import ntpath
 
 ### Constants ###
-IMAGE_EXTS = ['.bmp', '.png', '.jpg', '.jpeg', '.tiff', '.gif']
+IMAGE_EXTS = ['.bmp', '.png', '.jpg', '.jpeg', '.tiff', '.gif', '.ppm']
 
 
 ### ======================================================================== ###
